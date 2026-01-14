@@ -135,8 +135,8 @@ void main(List<String> args) async {
         if (initialUrl != null) {
           debugPrint('Second instance with URL: $initialUrl - writing to file and exiting');
           await SimpleSingleInstance.writeUrlForRunningInstance(initialUrl);
-          // Wait a bit to ensure the file is written
-          await Future.delayed(const Duration(milliseconds: 500));
+          // Wait to ensure the file is written and read by the first instance
+          await Future.delayed(const Duration(milliseconds: 1000));
           debugPrint('Second instance: URL written, exiting now');
         } else {
           debugPrint('Second instance without URL - exiting');

@@ -35,11 +35,11 @@ class SharingUtils {
     if (selectedText != null && selectedText.trim().isNotEmpty) {
       final encodedText = Uri.encodeComponent(selectedText.trim());
       final separator = baseLink.contains('?') ? '&' : '?';
-      return '$baseLink${separator}highlight=$encodedText';
+      return '$baseLink${separator}text=$encodedText';
     } else {
-      // If no specific text, just add highlight flag
+      // If no specific text, just add text flag
       final separator = baseLink.contains('?') ? '&' : '?';
-      return '$baseLink${separator}highlight=true';
+      return '$baseLink${separator}text=true';
     }
   }
 

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
@@ -23,13 +24,13 @@ import 'package:otzaria/settings/settings_screen.dart';
 import 'package:otzaria/navigation/more_screen.dart';
 import 'package:otzaria/navigation/about_dialog.dart';
 import 'package:otzaria/widgets/keyboard_shortcuts.dart';
-import 'dart:async';
 import 'package:otzaria/update/my_updat_widget.dart';
 import 'package:otzaria/tabs/bloc/tabs_bloc.dart';
 import 'package:otzaria/tabs/bloc/tabs_event.dart';
 import 'package:otzaria/tabs/models/searching_tab.dart';
 import 'package:otzaria/navigation/calendar_cubit.dart';
 import 'package:otzaria/widgets/ad_popup_dialog.dart';
+import 'package:otzaria/library/bloc/library_bloc.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:otzaria/main.dart' show appWindowListener;
 import 'package:otzaria/utils/html_link_handler.dart';
@@ -194,40 +195,63 @@ class MainWindowScreenState extends State<MainWindowScreen>
     
     // Wait for the app to be fully initialized before handling the URL
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // Wait for library to load
-      await Future.delayed(const Duration(milliseconds: 2000));
-      
       if (!mounted) {
         debugPrint('MainWindowScreen: Widget not mounted, skipping URL handling');
         return;
       }
       
-      debugPrint('MainWindowScreen: Starting URL handling for: $url');
+      // Wait for library to be loaded using state-driven approach
+      final libraryBloc = context.read<LibraryBloc>();
       
-      try {
-        // Handle the URL using the existing link handler
-        final success = await HtmlLinkHandler.handleLink(
-          context,
-          url,
-          (tab) {
-            debugPrint('MainWindowScreen: Opening tab: ${tab.title}');
-            // Open the tab using the TabsBloc
-            context.read<TabsBloc>().add(AddTab(tab));
-            // Navigate to reading screen
-            context.read<NavigationBloc>().add(const NavigateToScreen(Screen.reading));
-          },
-        );
-        
-        if (success) {
-          debugPrint('MainWindowScreen: URL handled successfully');
-        } else {
-          debugPrint('MainWindowScreen: URL handling returned false');
-        }
-      } catch (e, stackTrace) {
-        debugPrint('MainWindowScreen: Error handling URL: $e');
-        debugPrint('MainWindowScreen: Stack trace: $stackTrace');
+      // If library is already loaded, handle URL immediately
+      if (libraryBloc.state.library != null && !libraryBloc.state.isLoading) {
+        debugPrint('MainWindowScreen: Library already loaded, handling URL immediately');
+        await _processUrl(url);
+        return;
       }
+      
+      // Otherwise, listen for library to load
+      debugPrint('MainWindowScreen: Waiting for library to load...');
+      late StreamSubscription subscription;
+      subscription = libraryBloc.stream.listen((state) async {
+        if (state.library != null && !state.isLoading) {
+          debugPrint('MainWindowScreen: Library loaded, handling URL now');
+          subscription.cancel();
+          if (mounted) {
+            await _processUrl(url);
+          }
+        }
+      });
     });
+  }
+  
+  /// Process the URL after library is loaded
+  Future<void> _processUrl(String url) async {
+    debugPrint('MainWindowScreen: Starting URL handling for: $url');
+    
+    try {
+      // Handle the URL using the existing link handler
+      final success = await HtmlLinkHandler.handleLink(
+        context,
+        url,
+        (tab) {
+          debugPrint('MainWindowScreen: Opening tab: ${tab.title}');
+          // Open the tab using the TabsBloc
+          context.read<TabsBloc>().add(AddTab(tab));
+          // Navigate to reading screen
+          context.read<NavigationBloc>().add(const NavigateToScreen(Screen.reading));
+        },
+      );
+      
+      if (success) {
+        debugPrint('MainWindowScreen: URL handled successfully');
+      } else {
+        debugPrint('MainWindowScreen: URL handling returned false');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('MainWindowScreen: Error handling URL: $e');
+      debugPrint('MainWindowScreen: Stack trace: $stackTrace');
+    }
   }
 
   void _handleOrientationChange(BuildContext context, Orientation orientation) {

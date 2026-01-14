@@ -75,6 +75,21 @@ class NotificationService {
 
         final bool? granted = await androidImplementation?.requestNotificationsPermission();
         _permissionsGranted = granted ?? false;
+        
+        // Request exact alarm permission for Android 12+ (API level 31+)
+        if (_permissionsGranted) {
+          try {
+            final bool? exactAlarmGranted = await androidImplementation?.requestExactAlarmsPermission();
+            if (kDebugMode) {
+              print('Exact alarm permission granted: $exactAlarmGranted');
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              print('Failed to request exact alarm permission: $e');
+            }
+            // Continue without exact alarm permission - notifications will still work but may be less precise
+          }
+        }
       } else if (Platform.isIOS) {
         final bool? result = await flutterLocalNotificationsPlugin
             .resolvePlatformSpecificImplementation<

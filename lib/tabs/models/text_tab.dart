@@ -113,9 +113,19 @@ class TextBookTab extends OpenedTab {
         debugPrint('DEBUG: עדכון אינדקס ל-$index עבור ספר: ${book.title}');
         
         // אם יש טקסט להדגשה ועדיין לא הגדרנו אותו
+        // והאינדקס הנוכחי תואם לאינדקס המבוקש (הדגשה רק במקטע הספציפי)
         if (highlightText.isNotEmpty && state.searchText != highlightText) {
-          debugPrint('DEBUG: הגדרת טקסט להדגשה: $highlightText');
-          bloc.add(UpdateSearchText(highlightText));
+          // בדיקה אם אנחנו במקטע הנכון להדגשה
+          final targetIndex = this.index; // האינדקס שהוגדר בקישור
+          final currentIndex = state.visibleIndices.first; // האינדקס הנוכחי הנראה
+          
+          // מדגישים רק אם אנחנו במקטע הנכון (או קרובים אליו)
+          if ((currentIndex - targetIndex).abs() <= 2) { // טווח של 2 מקטעים
+            debugPrint('DEBUG: הגדרת טקסט להדגשה במקטע $currentIndex: $highlightText');
+            bloc.add(UpdateSearchText(highlightText));
+          } else {
+            debugPrint('DEBUG: לא מדגיש טקסט - לא במקטע הנכון (נוכחי: $currentIndex, מבוקש: $targetIndex)');
+          }
         }
       }
     });

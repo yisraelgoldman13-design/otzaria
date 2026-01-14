@@ -214,8 +214,8 @@ class HtmlLinkHandler {
 
         // קביעת הטקסט להדגשה
         String highlightText = '';
-        if (queryParams.containsKey('highlight')) {
-          final highlightParam = queryParams['highlight'];
+        if (queryParams.containsKey('text')) {
+          final highlightParam = queryParams['text'];
           if (highlightParam != null && highlightParam.isNotEmpty && highlightParam != 'true') {
             try {
               String decodedText = highlightParam;

@@ -375,9 +375,9 @@ void main() {
         if (selectedText != null && selectedText.trim().isNotEmpty) {
           final encodedText = Uri.encodeComponent(selectedText.trim());
           expect(
-            highlightLink.contains(encodedText) || highlightLink.contains('highlight='),
+            highlightLink.contains(encodedText) || highlightLink.contains('text='),
             isTrue,
-            reason: 'Highlight link should contain encoded text or highlight parameter (iteration $i)',
+            reason: 'Highlight link should contain encoded text or text parameter (iteration $i)',
           );
         }
       }

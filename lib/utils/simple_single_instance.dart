@@ -45,14 +45,27 @@ class SimpleSingleInstance {
           return true;
         }
         
-        // Check if process is still running (Windows specific)
+        // Check if process is still running (cross-platform)
         try {
-          final result = await Process.run('tasklist', ['/FI', 'PID eq $pid', '/FO', 'CSV', '/NH']);
-          final output = result.stdout.toString();
-          debugPrint('SimpleSingleInstance: tasklist output: $output');
+          bool isRunning;
+          if (Platform.isWindows) {
+            // Windows: use tasklist
+            final result = await Process.run('tasklist', ['/FI', 'PID eq $pid', '/FO', 'CSV', '/NH']);
+            final output = result.stdout.toString();
+            debugPrint('SimpleSingleInstance: tasklist output: $output');
+            isRunning = output.contains('"$pid"') && !output.contains('INFO: No tasks');
+          } else if (Platform.isLinux || Platform.isMacOS) {
+            // Linux/macOS: use ps
+            final result = await Process.run('ps', ['-p', pid.toString()]);
+            isRunning = result.exitCode == 0;
+            debugPrint('SimpleSingleInstance: ps exit code: ${result.exitCode}');
+          } else {
+            // Other platforms: assume not running
+            debugPrint('SimpleSingleInstance: Unsupported platform, assuming process not running');
+            isRunning = false;
+          }
           
-          // Check if the output contains the PID and it's not an error message
-          if (output.contains('"$pid"') && !output.contains('INFO: No tasks')) {
+          if (isRunning) {
             debugPrint('SimpleSingleInstance: Process $pid is still running');
             return false;
           } else {
