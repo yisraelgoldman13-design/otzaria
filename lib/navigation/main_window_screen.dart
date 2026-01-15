@@ -215,13 +215,21 @@ class MainWindowScreenState extends State<MainWindowScreen>
       debugPrint('MainWindowScreen: Waiting for library to load...');
       
       // Wait for library to be loaded using firstWhere
-      await libraryBloc.stream.firstWhere(
-        (state) => mounted && state.library != null && !state.isLoading,
-      );
-      
-      debugPrint('MainWindowScreen: Library loaded, handling URL now');
-      if (mounted) {
-        await _processUrl(url);
+      // Note: We can't check 'mounted' inside firstWhere predicate as it's not async
+      // Instead, we check mounted before and after the wait
+      try {
+        await libraryBloc.stream.firstWhere(
+          (state) => state.library != null && !state.isLoading,
+        );
+        
+        debugPrint('MainWindowScreen: Library loaded, handling URL now');
+        if (mounted) {
+          await _processUrl(url);
+        } else {
+          debugPrint('MainWindowScreen: Widget unmounted after library load, skipping URL processing');
+        }
+      } catch (e) {
+        debugPrint('MainWindowScreen: Error waiting for library: $e');
       }
     });
   }

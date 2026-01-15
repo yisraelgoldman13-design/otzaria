@@ -33,15 +33,23 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
     OutputDebugStringA("\n");
   }
 
-  // Check if any argument contains otzaria://
+  // Check if any argument contains otzaria:// and add --url= prefix if not already present
+  bool urlFound = false;
   for (const auto& arg : command_line_arguments) {
+    // Check if URL is already in --url= format
+    if (arg.find("--url=") == 0) {
+      urlFound = true;
+      break;
+    }
+    // Check if we have a direct otzaria:// URL
     if (arg.find("otzaria://") != std::string::npos) {
       OutputDebugStringA("Found URL in arguments: ");
       OutputDebugStringA(arg.c_str());
       OutputDebugStringA("\n");
       
-      // The URL is already in UTF-8, just pass it as is
+      // The URL is already in UTF-8, just pass it as is with --url= prefix
       command_line_arguments.push_back("--url=" + arg);
+      urlFound = true;
       break;
     }
   }

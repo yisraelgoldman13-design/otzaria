@@ -152,9 +152,11 @@ void main(List<String> args) async {
         debugPrint('Lock created successfully');
       }
     } catch (e, stackTrace) {
-      debugPrint('Error with single instance check: $e');
+      debugPrint('WARNING: Single instance check failed: $e');
       debugPrint('Stack trace: $stackTrace');
+      debugPrint('Continuing with app launch - multiple instances may run simultaneously');
       // Continue anyway if single instance check fails
+      // This is acceptable as it's better to allow the app to run than to fail completely
     }
   }
 
