@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_context_menu/flutter_context_menu.dart';
@@ -30,6 +31,7 @@ import 'package:otzaria/settings/reading_settings_dialog.dart';
 import 'package:otzaria/settings/settings_bloc.dart';
 import 'package:otzaria/settings/settings_state.dart';
 import 'package:otzaria/utils/fullscreen_helper.dart';
+import 'package:otzaria/utils/sharing_utils.dart';
 import 'package:otzaria/widgets/resizable_drag_handle.dart';
 
 class ReadingScreen extends StatefulWidget {
@@ -201,23 +203,12 @@ class _ReadingScreenState extends State<ReadingScreen>
                           );
                         },
                       ),
-                      // כפתור הגדרות
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                        child: IconButton(
-                          icon: const Icon(FluentIcons.settings_24_regular,
-                              size: 18),
-                          tooltip: 'הגדרות תצוגת הספרים',
-                          onPressed: () => showReadingSettingsDialog(context),
-                          style: _kIconButtonStyle.copyWith(
-                            foregroundColor: WidgetStatePropertyAll(
-                                Theme.of(context).colorScheme.onSurfaceVariant),
-                            backgroundColor: WidgetStatePropertyAll(
-                                Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest),
-                          ),
-                        ),
+                      // כפתור הגדרות ישיר
+                      IconButton(
+                        icon: const Icon(FluentIcons.settings_24_regular, size: 18),
+                        tooltip: 'הגדרות תצוגת הספרים',
+                        onPressed: () => showReadingSettingsDialog(context),
+                        style: _kIconButtonStyle,
                       ),
                     ],
                   ),
@@ -273,7 +264,6 @@ class _ReadingScreenState extends State<ReadingScreen>
                     context.read<TabsBloc>().add(const SaveTabs());
                   }
                   if (controller.index != state.currentTabIndex) {
-                    debugPrint('DEBUG: עדכון טאב נוכחי ל-${controller.index}');
                     context
                         .read<TabsBloc>()
                         .add(SetCurrentTab(controller.index));
@@ -402,23 +392,13 @@ class _ReadingScreenState extends State<ReadingScreen>
                         );
                       },
                     ),
-                    // כפתור הגדרות בצד שמאל של שורת הטאבים
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                      child: IconButton(
-                        icon: const Icon(FluentIcons.settings_24_regular,
-                            size: 18),
-                        tooltip: 'הגדרות תצוגת הספרים',
-                        onPressed: () => showReadingSettingsDialog(context),
-                        style: _kIconButtonStyle.copyWith(
-                          foregroundColor: WidgetStatePropertyAll(
-                              Theme.of(context).colorScheme.onSurfaceVariant),
-                          backgroundColor: WidgetStatePropertyAll(
-                              Theme.of(context)
-                                  .colorScheme
-                                  .surfaceContainerHighest),
-                        ),
-                      ),
+
+                    // כפתור הגדרות ישיר
+                    IconButton(
+                      icon: const Icon(FluentIcons.settings_24_regular, size: 18),
+                      tooltip: 'הגדרות תצוגת הספרים',
+                      onPressed: () => showReadingSettingsDialog(context),
+                      style: _kIconButtonStyle,
                     ),
                   ],
                 ),
@@ -588,6 +568,11 @@ class _ReadingScreenState extends State<ReadingScreen>
                     context.read<TabsBloc>().add(const DisableSideBySideMode()),
               ),
             ],
+            const MenuDivider(),
+            MenuItem(
+              label: const Text('העתק קישור לספר זה'),
+              onSelected: (_) => _shareBookLink(tab),
+            ),
             const MenuDivider(),
             // הוסרת אפשרות הצמדה לדף הבית לאחר הסרת דף הבית
             MenuItem.submenu(
@@ -817,8 +802,6 @@ class _ReadingScreenState extends State<ReadingScreen>
   }
 
   void pinTabToHomePage(OpenedTab tab, BuildContext context) {
-    debugPrint('Pinning tab: ${tab.title}'); // debug
-
     // קבל את הרשימה הנוכחית של הספרים הנעוצים
     final currentBooksString =
         Settings.getValue<String>('key-pinned-books') ?? '';
@@ -863,8 +846,6 @@ class _ReadingScreenState extends State<ReadingScreen>
     final booksString = jsonEncode(updatedBooks);
     Settings.setValue<String>('key-pinned-books', booksString);
 
-    debugPrint('Saved pinned books: $booksString'); // debug
-
     UiSnack.show('הצמדת "${tab.title}" לדף הבית');
   }
 
@@ -896,6 +877,26 @@ class _ReadingScreenState extends State<ReadingScreen>
     showDialog(
       context: context,
       builder: (context) => const BookmarksDialog(),
+    );
+  }
+
+  Future<void> _shareBookLink(OpenedTab tab) async {
+    await SharingUtils.shareBookLink(
+      tab,
+      (message) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
+          );
+        }
+      },
+      (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(error), duration: const Duration(seconds: 2)),
+          );
+        }
+      },
     );
   }
 }

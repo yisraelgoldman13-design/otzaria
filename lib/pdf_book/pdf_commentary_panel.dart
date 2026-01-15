@@ -348,9 +348,6 @@ class _PdfCommentaryPanelState extends State<PdfCommentaryPanel>
   }
 
   Widget _buildCommentariesView() {
-    debugPrint('=== PDF Commentary Debug ===');
-    debugPrint('currentTextLineNumber: ${widget.tab.currentTextLineNumber}');
-    debugPrint('total links: ${widget.tab.links.length}');
     debugPrint('activeCommentators: ${widget.tab.activeCommentators}');
 
     // בדיקה אם יש מספר שורה נוכחי

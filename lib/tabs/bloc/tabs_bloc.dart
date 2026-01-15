@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'package:flutter/foundation.dart';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:otzaria/tabs/bloc/tabs_event.dart';
@@ -48,7 +47,7 @@ class TabsBloc extends Bloc<TabsEvent, TabsState> {
           sideBySideMode.leftTabIndex != sideBySideMode.rightTabIndex) {
         validatedMode = sideBySideMode;
       } else {
-        debugPrint('DEBUG: מצב side-by-side לא תקין, מתעלם');
+        // Invalid mode, ignore
       }
     }
 
@@ -60,8 +59,6 @@ class TabsBloc extends Bloc<TabsEvent, TabsState> {
   }
 
   void _onReplaceAllTabs(ReplaceAllTabs event, Emitter<TabsState> emit) {
-    debugPrint('DEBUG: החלפת כל הטאבים - ${event.tabs.length} טאבים חדשים');
-    
     // ניקוי משאבים של כל הטאבים הקיימים
     for (final tab in state.tabs) {
       tab.dispose();
@@ -82,7 +79,6 @@ class TabsBloc extends Bloc<TabsEvent, TabsState> {
   }
 
   void _onAddTab(AddTab event, Emitter<TabsState> emit) {
-    debugPrint('DEBUG: הוספת טאב חדש - ${event.tab.title}');
     final newTabs = List<OpenedTab>.from(state.tabs);
     final newIndex = min(state.currentTabIndex + 1, newTabs.length);
     newTabs.insert(newIndex, event.tab);
@@ -101,9 +97,6 @@ class TabsBloc extends Bloc<TabsEvent, TabsState> {
         leftTabIndex: newLeftIndex,
         rightTabIndex: newRightIndex,
       );
-
-      debugPrint(
-          'DEBUG: עדכון אינדקסים במצב side-by-side: left=$newLeftIndex, right=$newRightIndex');
     }
 
     _repository.saveTabs(newTabs, newIndex, newSideBySideMode);
@@ -128,7 +121,6 @@ class TabsBloc extends Bloc<TabsEvent, TabsState> {
       if (removedTabIndex == state.sideBySideMode!.leftTabIndex ||
           removedTabIndex == state.sideBySideMode!.rightTabIndex) {
         // אם סגרנו אחד מהטאבים במצב side-by-side, מבטלים את המצב
-        debugPrint('DEBUG: ביטול מצב side-by-side כי נסגר טאב שהיה חלק ממנו');
         newSideBySideMode = null;
       } else {
         // עדכון האינדקסים אם הם השתנו
@@ -175,8 +167,6 @@ class TabsBloc extends Bloc<TabsEvent, TabsState> {
 
   void _onSetCurrentTab(SetCurrentTab event, Emitter<TabsState> emit) {
     if (event.index >= 0 && event.index < state.tabs.length) {
-      debugPrint(
-          'DEBUG: מעבר לטאב ${event.index} - ${state.tabs[event.index].title}');
 
       // לא מבטלים את מצב side-by-side - פשוט עוברים לטאב
       // הפונקציה _shouldShowSideBySideView תחליט אם להציג side-by-side או TabBarView
@@ -300,9 +290,6 @@ class TabsBloc extends Bloc<TabsEvent, TabsState> {
     // החלפת מצב ההצמדה
     event.tab.isPinned = !event.tab.isPinned;
 
-    debugPrint(
-        'DEBUG: הצמדת טאב ${event.tab.title} - isPinned: ${event.tab.isPinned}');
-
     // יצירת רשימה חדשה לחלוטין כדי לגרום ל-Equatable לזהות שינוי
     final newTabs = List<OpenedTab>.from(state.tabs);
 
@@ -323,12 +310,9 @@ class TabsBloc extends Bloc<TabsEvent, TabsState> {
     final leftIndex = state.tabs.indexOf(event.leftTab);
 
     if (rightIndex == -1 || leftIndex == -1) {
-      debugPrint('ERROR: לא נמצאו הטאבים למצב side-by-side');
+      // Tabs not found for side-by-side mode
       return;
     }
-
-    debugPrint(
-        'DEBUG: הפעלת מצב side-by-side: right=${event.rightTab.title}, left=${event.leftTab.title}');
 
     // יצירת טאב משולב חדש
     final combinedTab = CombinedTab(
@@ -370,8 +354,6 @@ class TabsBloc extends Bloc<TabsEvent, TabsState> {
 
   void _onDisableSideBySideMode(
       DisableSideBySideMode event, Emitter<TabsState> emit) {
-    debugPrint('DEBUG: ביטול מצב side-by-side');
-
     // אם הטאב הנוכחי הוא CombinedTab, נפרק אותו לשני טאבים נפרדים
     if (state.currentTab is CombinedTab) {
       final combinedTab = state.currentTab as CombinedTab;
@@ -427,8 +409,6 @@ class TabsBloc extends Bloc<TabsEvent, TabsState> {
     // החלפת צדדים בטאב המשולב
     if (state.currentTab is CombinedTab) {
       final combinedTab = state.currentTab as CombinedTab;
-
-      debugPrint('DEBUG: החלפת צדדים במצב side-by-side');
 
       // החלפת הטאבים
       final tempTab = combinedTab.rightTab;
