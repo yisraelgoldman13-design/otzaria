@@ -475,15 +475,6 @@ class AppStrings {
     'dirNotFound': 'לא נמצאה תיקיית otzaria-site',
     'fileNotFound': 'הקובץ %s לא נמצא',
     'changelogTitle': 'יומן שינויים בתוכנה',
-    'close_': 'סגור',
-    'libraryVersion': 'גרסת ספריה',
-    'softwareVersion': 'גרסת תוכנה',
-    'numberOfBooks': 'מספר ספרים',
-    'developers': 'מפתחים',
-    'contributors': 'תורמים',
-    'joinDevelopment': 'הצטרף לפיתוח!',
-    'changelog': 'יומן שינויים',
-    'aboutSoftware': 'אודות התוכנה',
   };
 
   /// English translations
@@ -671,7 +662,6 @@ class AppStrings {
     'eventTitle': 'Event title',
     'pleaseEnterEventTitle': 'Please enter an event title',
     'noDataError': 'Could not load report data',
-    'close_': 'Close',
     'startRecording': 'Start recording',
     'pressKeys': 'Press the keys...',
     'addLink': 'Add link',
@@ -702,14 +692,6 @@ class AppStrings {
     'dirNotFound': 'Directory otzaria-site not found',
     'fileNotFound': 'File %s not found',
     'changelogTitle': 'Changelog',
-    'libraryVersion': 'Library version',
-    'softwareVersion': 'Software version',
-    'numberOfBooks': 'Number of books',
-    'developers': 'Developers',
-    'contributors': 'Contributors',
-    'joinDevelopment': 'Join Development!',
-    'changelog': 'Changelog',
-    'aboutSoftware': 'About the software',
   };
 
   /// Get Hebrew translation

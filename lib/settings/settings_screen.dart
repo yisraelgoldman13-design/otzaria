@@ -1501,7 +1501,7 @@ class _BackupSettingsSectionState extends State<_BackupSettingsSection> {
                     },
                   ),
                 ),
-                segments: const [
+                segments: [
                   ButtonSegment<_BackupMode>(
                     value: _BackupMode.all,
                     label: Text(context.tr('backupAll')),
