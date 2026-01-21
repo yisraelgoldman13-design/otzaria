@@ -1,4 +1,4 @@
-name: "Build Windows (Fast)"
+name: "Build Windows (Fast)2"
 
 permissions:
   contents: write
@@ -112,24 +112,3 @@ jobs:
           name: otzaria-windows-msix
           path: build/windows/x64/runner/release/*.msix
           if-no-files-found: warn
-
-      - name: Create Release (dev branch only)
-        if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
-        uses: softprops/action-gh-release@v1
-        with:
-          token: ${{ secrets.GH_RELEASE_TOKEN }}
-          tag_name: windows-build-${{ github.run_number }}
-          name: Windows Build #${{ github.run_number }}
-          prerelease: true
-          files: |
-            installer/otzaria-*-windows*.exe
-            otzaria-windows-portable.zip
-            build/windows/x64/runner/release/*.msix
-          body: |
-            ## ⚡ Windows Build #${{ github.run_number }}
-            Fast Windows-only build
-            
-            Commit: ${{ github.sha }}
-            Branch: ${{ github.ref_name }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
