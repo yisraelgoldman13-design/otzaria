@@ -14,7 +14,7 @@ import 'package:flutter_settings_screens/flutter_settings_screens.dart';
 import 'package:otzaria/data/data_providers/file_system_data_provider.dart';
 import 'package:otzaria/text_book/editing/repository/overrides_repository.dart';
 import 'package:otzaria/text_book/editing/models/section_identifier.dart';
-
+import 'package:otzaria/text_book/services/parallel_book_loader.dart';
 import 'package:otzaria/search/models/search_configuration.dart';
 
 class TextBookBloc extends Bloc<TextBookEvent, TextBookState> {
@@ -119,36 +119,49 @@ class TextBookBloc extends Bloc<TextBookEvent, TextBookState> {
     }
 
     try {
-      final content = await repository.getBookContent(book);
-      final links = await repository.getBookLinks(book);
-      final tableOfContents = await repository.getTableOfContents(book);
+      // Load all data in parallel for performance
+      final loadResult = await ParallelBookLoader.loadBook(
+        book,
+        contentLoader: () => repository.getBookContent(book),
+        linksLoader: () => repository.getBookLinks(book),
+        tocLoader: () => repository.getTableOfContents(book),
+        metadataLoader: () async {
+          // Parallel metadata loading
+          if (book.heCategories == null || book.heCategories!.isEmpty) {
+            try {
+              final metadata = await FileSystemData.instance.metadata;
+              final bookMetadata = metadata[book.title];
+              if (bookMetadata != null) {
+                book.heCategories = bookMetadata['heCategories'];
+                book.author = bookMetadata['author'];
+                book.heEra = bookMetadata['heEra'];
+              }
+            } catch (_) {
+              // Metadata load failure shouldn't block content
+            }
+          }
+        },
+      );
 
-      // טעינת metadata של הספר אם חסר (למשל כשפותחים מחיפוש)
+      final content = loadResult.content;
+      final links = loadResult.links;
+      final tableOfContents = loadResult.tableOfContents;
+
+      // Extract categories from path if still missing
       if (book.heCategories == null || book.heCategories!.isEmpty) {
-        final metadata = await FileSystemData.instance.metadata;
-        final bookMetadata = metadata[book.title];
-        if (bookMetadata != null) {
-          book.heCategories = bookMetadata['heCategories'];
-          book.author = bookMetadata['author'];
-          book.heEra = bookMetadata['heEra'];
-        }
-        
-        // אם עדיין אין קטגוריות, נחלץ אותן מהנתיב של הספר
-        if (book.heCategories == null || book.heCategories!.isEmpty) {
+        try {
           final titleToPath = await FileSystemData.instance.titleToPath;
           final bookPath = titleToPath[book.title];
           if (bookPath != null) {
-            // חילוץ הקטגוריות מהנתיב
-            // למשל: /אוצריא/הלכה/משנה תורה/ספר מדע/משנה תורה, הלכות דעות.txt
-            // → הלכה, משנה תורה, ספר מדע
             final pathParts = bookPath.split(Platform.pathSeparator);
             final otzariaIndex = pathParts.indexOf('אוצריא');
             if (otzariaIndex >= 0 && otzariaIndex < pathParts.length - 2) {
-              // לוקחים את כל התיקיות בין אוצריא לקובץ עצמו
               final categories = pathParts.sublist(otzariaIndex + 1, pathParts.length - 1);
               book.heCategories = categories.join(', ');
             }
           }
+        } catch (_) {
+          // Category extraction failure shouldn't block display
         }
       }
 
