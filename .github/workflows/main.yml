@@ -1,0 +1,135 @@
+name: "Build Windows (Fast)2"
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build_windows_fast:
+    runs-on: windows-2022
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Cache Flutter
+        uses: actions/cache@v4
+        with:
+          path: |
+            C:\flutter
+            C:\flutter\.dart-tool
+          key: flutter-windows-${{ runner.os }}-v3.35.7
+          restore-keys: |
+            flutter-windows-${{ runner.os }}-
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.7'
+          cache: true
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.PUB_CACHE }}
+            .dart_tool
+          key: pub-cache-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            pub-cache-${{ runner.os }}-
+
+      - name: Install Inno Setup (cached)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          
+          # Check if ISCC is already available
+          if (Get-Command iscc -ErrorAction SilentlyContinue) {
+            Write-Host "✓ ISCC already available"
+            $iscc = (Get-Command iscc).Source
+          } else {
+            Write-Host "Installing Inno Setup via winget..."
+            winget install -e --id JRSoftware.InnoSetup --silent --accept-package-agreements --accept-source-agreements
+            
+            $iscc = (Get-ChildItem "C:\Program Files*\Inno Setup*\ISCC.exe" -Recurse -ErrorAction SilentlyContinue |
+                     Select-Object -First 1 -ExpandProperty FullName)
+            if (-not $iscc) { throw "ISCC.exe not found after installation" }
+          }
+          
+          "ISCC=$iscc" | Out-File -FilePath $env:GITHUB_ENV -Append
+          Write-Host "ISCC: $iscc"
+
+      - name: Build Flutter Windows app (Release)
+        shell: pwsh
+        run: |
+          flutter pub get
+          flutter build windows --release -v
+
+      - name: Build Inno Setup installer (regular only)
+        shell: pwsh
+        run: |
+          Write-Host "Building installer with Inno Setup..."
+          & "$env:ISCC" installer\otzaria.iss
+          Write-Host "✓ Installer built successfully"
+
+      - name: Create Windows portable ZIP
+        shell: pwsh
+        run: |
+          $relDir = Get-ChildItem -Directory build\windows |
+                    Where-Object { Test-Path "$($_.FullName)\runner\Release" } |
+                    Select-Object -First 1 -ExpandProperty FullName
+          if (-not $relDir) { throw 'Release directory not found' }
+          
+          Write-Host "Creating portable ZIP from: $relDir\runner\Release"
+          Compress-Archive -Path "$relDir\runner\Release\*" -DestinationPath otzaria-windows-portable.zip -Force
+          Write-Host "✓ ZIP created: otzaria-windows-portable.zip"
+
+      - name: Build MSIX package
+        shell: pwsh
+        run: |
+          Write-Host "Building MSIX package..."
+          dart run msix:create --install-certificate false
+          Write-Host "✓ MSIX built successfully"
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: otzaria-windows-installer
+          path: installer/otzaria-*-windows*.exe
+          if-no-files-found: warn
+
+      - name: Upload Windows portable ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: otzaria-windows-portable
+          path: otzaria-windows-portable.zip
+          if-no-files-found: warn
+
+      - name: Upload Windows MSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: otzaria-windows-msix
+          path: build/windows/x64/runner/release/*.msix
+          if-no-files-found: warn
+
+      - name: Create Release (dev branch only)
+        if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+        uses: softprops/action-gh-release@v1
+        with:
+          token: ${{ secrets.GH_RELEASE_TOKEN }}
+          tag_name: windows-build-${{ github.run_number }}
+          name: Windows Build #${{ github.run_number }}
+          prerelease: true
+          files: |
+            installer/otzaria-*-windows*.exe
+            otzaria-windows-portable.zip
+            build/windows/x64/runner/release/*.msix
+          body: |
+            ## ⚡ Windows Build #${{ github.run_number }}
+            Fast Windows-only build
+            
+            Commit: ${{ github.sha }}
+            Branch: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
